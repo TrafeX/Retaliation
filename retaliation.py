@@ -13,46 +13,46 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-# 
+#
 
 ############################################################################
-# 
+#
 # RETALIATION - A Jenkins "Extreme Feedback" Contraption
 #
-#    Lava Lamps are for pussies! Retaliate to a broken build with a barrage 
+#    Lava Lamps are for pussies! Retaliate to a broken build with a barrage
 #    of foam missiles.
 #
 # Steps to use:
 #
-#  1.  Mount your Dream Cheeky Thunder USB missile launcher in a central and 
+#  1.  Mount your Dream Cheeky Thunder USB missile launcher in a central and
 #      fixed location.
 #
 #  2.  Copy this script onto the system connected to your missile lanucher.
 #
-#  3.  Modify your `COMMAND_SETS` in the `retaliation.py` script to define 
-#      your targeting commands for each one of your build-braking coders 
-#      (their user ID as listed in Jenkins).  A command set is an array of 
-#      move and fire commands. It is recommend to start each command set 
-#      with a "zero" command.  This parks the launcher in a known position 
-#      (bottom-left).  You can then use "up" and "right" followed by a 
+#  3.  Modify your `COMMAND_SETS` in the `retaliation.py` script to define
+#      your targeting commands for each one of your build-braking coders
+#      (their user ID as listed in Jenkins).  A command set is an array of
+#      move and fire commands. It is recommend to start each command set
+#      with a "zero" command.  This parks the launcher in a known position
+#      (bottom-left).  You can then use "up" and "right" followed by a
 #      time (in milliseconds) to position your fire.
-# 
-#      You can test a set by calling retaliation.py with the target name. 
-#      e.g.:  
+#
+#      You can test a set by calling retaliation.py with the target name.
+#      e.g.:
 #
 #           retaliation.py "[developer's user name]"
 #
-#      Trial and error is the best approch. Consider doing this secretly 
+#      Trial and error is the best approch. Consider doing this secretly
 #      after hours for best results!
 #
-#  4.  Setup the Jenkins "notification" plugin. Define a UDP endpoint 
+#  4.  Setup the Jenkins "notification" plugin. Define a UDP endpoint
 #      on port 22222 pointing to the system hosting this script.
 #      Tip: Make sure your firewall is not blocking UDP on this port.
 #
 #  5.  Start listening for failed build events by running the command:
 #          retaliation.py stalk
-#      (Consider setting this up as a boot/startup script. On Windows 
-#      start with pythonw.exe to keep it running hidden in the 
+#      (Consider setting this up as a boot/startup script. On Windows
+#      start with pythonw.exe to keep it running hidden in the
 #      background.)
 #
 #  6.  Wait for DEFCON 1 - Let the war games begin!
@@ -61,13 +61,15 @@
 #  Requirements:
 #   * A Dream Cheeky Thunder USB Missile Launcher
 #   * Python 2.6+
-#   * Python PyUSB Support and its dependencies 
+#   * Python PyUSB Support and its dependencies
 #      http://sourceforge.net/apps/trac/pyusb/
 #      (on Mac use brew to "brew install libusb")
 #   * Should work on Windows, Mac and Linux
 #
 #  Author:  Chris Dance <chris.dance@papercut.com>
 #  Version: 1.0 : 2011-08-15
+#
+#  Modifications done by:   Tim de Pater <code@trafex.nl>
 #
 ############################################################################
 
@@ -86,51 +88,67 @@ import usb.util
 ##########################  CONFIG   #########################
 
 #
-# Define a dictionary of "command sets" that map usernames to a sequence 
-# of commands to target the user (e.g their desk/workstation).  It's 
+# Define a dictionary of "command sets" that map usernames to a sequence
+# of commands to target the user (e.g their desk/workstation).  It's
 # suggested that each set start and end with a "zero" command so it's
 # always parked in a known reference location. The timing on move commands
 # is milli-seconds. The number after "fire" denotes the number of rockets
 # to shoot.
 #
 COMMAND_SETS = {
-    "will" : (
-        ("zero", 0), # Zero/Park to know point (bottom-left)
-        ("right", 3250),
-        ("up", 540),
-        ("fire", 4), # Fire a full barrage of 4 missiles
-        ("zero", 0), # Park after use for next time
-    ),
-    "tom" : (
-        ("zero", 0), 
-        ("right", 4400),
+    "david" : (
+        ("right", 4750),
         ("up", 200),
-        ("fire", 4),
+        ("fire", 1),
         ("zero", 0),
     ),
-    "chris" : (      # That's me - just dance around and missfire!
+    "stefan" : (
+        ("right", 400),
+        ("up", 280),
+        ("fire", 1),
         ("zero", 0),
-        ("right", 5200),
-        ("up", 500),
-        ("pause", 5000),
-        ("left", 2200),
-        ("down", 500),
+    ),
+    "michel" : (
+        ("right", 4725),
+        ("up", 300),
+        ("fire", 1),
+        ("zero", 0),
+    ),
+    "daniel" : (
+        ("right", 5000),
+        ("up", 325),
+        ("fire", 1),
+        ("zero", 0),
+    ),
+    "tim" : (
+        ("right", 1300),
+        ("fire", 1),
+        ("zero", 0),
+    ),
+    "git" : ( # Alias Tim
+        ("right", 1300),
+        ("fire", 1),
+        ("zero", 0),
+    ),
+    "marcel" : (
+        ("right", 1050),
+        ("up", 150),
+        ("fire", 1),
+        ("zero", 0),
+    ),
+    "nick" : (
+        ("right", 3800),
+        ("up", 0),
         ("fire", 1),
         ("zero", 0),
     ),
 }
 
 #
-# The UDP port to listen to Jenkins events on (events are generated/supplied 
+# The UDP port to listen to Jenkins events on (events are generated/supplied
 # by Jenkins "notification" plugin)
 #
 JENKINS_NOTIFICATION_UDP_PORT   = 22222
-
-#
-# The URL of your Jenkins server - used to callback to determine who broke 
-# the build.
-#
-JENKINS_SERVER                  = "http://192.168.1.100:23456"
 
 #
 # If you're Jenkins server is secured by HTTP basic auth, sent the
@@ -166,6 +184,7 @@ def usage():
     print "     fire  - fire <value> times (between 1-4)"
     print "     zero  - park at zero position (bottom-left)"
     print "     pause - pause <value> milliseconds"
+    print "     led   - turn the led on or of (1 or 0)"
     print ""
     print "     <command_set_name> - run/test a defined COMMAND_SET"
     print "             e.g. run:"
@@ -176,7 +195,7 @@ def usage():
 
 def setup_usb():
     # Tested only with the Cheeky Dream Thunder
-    global DEVICE 
+    global DEVICE
     DEVICE = usb.core.find(idVendor=0x2123, idProduct=0x1010)
 
     if DEVICE is None:
@@ -187,13 +206,16 @@ def setup_usb():
         try:
             DEVICE.detach_kernel_driver(0)
         except Exception, e:
-            pass # already unregistered    
+            pass # already unregistered
 
     DEVICE.set_configuration()
 
 
 def send_cmd(cmd):
     DEVICE.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
+
+def led(cmd):
+    DEVICE.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, cmd, 0x00,0x00,0x00,0x00,0x00,0x00])
 
 
 def send_move(cmd, duration_ms):
@@ -218,6 +240,11 @@ def run_command(command, value):
         send_move(LEFT, 8000)
     elif command == "pause" or command == "sleep":
         time.sleep(value / 1000.0)
+    elif command == "led":
+        if value == 0:
+            led(0x00)
+        else:
+            led(0x01)
     elif command == "fire" or command == "shoot":
         if value < 1 or value > 4:
             value = 1
@@ -260,11 +287,11 @@ def read_url(url):
     return urllib2.urlopen(request).read()
 
 
-def jenkins_get_responsible_user(job_name):
+def jenkins_get_responsible_user(build_url):
     # Call back to Jenkins and determin who broke the build. (Hacky)
     # We do this by crudly parsing the changes on the last failed build
-    
-    changes_url = JENKINS_SERVER + "/job/" + job_name + "/lastFailedBuild/changes"
+
+    changes_url = build_url + "/changes"
     changedata = read_url(changes_url)
 
     # Look for the /user/[name] link
@@ -277,20 +304,20 @@ def jenkins_get_responsible_user(job_name):
 
 def jenkins_wait_for_event():
 
-    # Data in the format: 
+    # Data in the format:
     #   {"name":"Project", "url":"JobUrl", "build":{"number":1, "phase":"STARTED", "status":"FAILURE" }}
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', JENKINS_NOTIFICATION_UDP_PORT))
 
     while True:
-        data, addr = sock.recvfrom(8 * 1024)
+        data, addr = sock.recvfrom(8192)
         try:
             notification_data = json.loads(data)
             status = notification_data["build"]["status"].upper()
             phase  = notification_data["build"]["phase"].upper()
-            if phase == "FINISHED" and status.startswith("FAIL"):
-                target = jenkins_get_responsible_user(notification_data["name"])
+            if phase == "FINISHED" and (status.startswith("UNSTABLE") or status.startswith("FAIL")):
+                target = jenkins_get_responsible_user(notification_data["build"]["full_url"])
                 if target == None:
                     print "WARNING: Could not identify the user who broke the build!"
                     continue
@@ -299,7 +326,7 @@ def jenkins_wait_for_event():
                 jenkins_target_user(target)
         except:
             pass
-                
+
 
 def main(args):
 
